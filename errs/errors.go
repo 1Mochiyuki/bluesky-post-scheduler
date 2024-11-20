@@ -10,14 +10,16 @@ func FailOnErr(err error, msg string) {
 	}
 }
 
-type IncorrectCredentials struct {
-	error
+type CredentialsError struct {
+	Handle string
 }
 
-func (e IncorrectCredentials) Error() string {
-	return "Incorrect Credentials Entered"
+func (e *CredentialsError) Error() string {
+	return fmt.Sprintf("Incorrect credentials for: %s", e.Handle)
 }
 
-func NewIncorrectCredentialsError() IncorrectCredentials {
-	return IncorrectCredentials{}
+func NewCredentialsErr(handle string) *CredentialsError {
+	return &CredentialsError{
+		Handle: handle,
+	}
 }

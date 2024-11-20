@@ -6,13 +6,14 @@ import (
 	"fmt"
 
 	"github.com/1Mochiyuki/gosky/client"
+	"github.com/1Mochiyuki/gosky/config/logger"
+	"github.com/1Mochiyuki/gosky/db"
 	"github.com/1Mochiyuki/gosky/errs"
 	"github.com/1Mochiyuki/gosky/ui/send"
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/spf13/viper"
 )
 
 type LoginScreenModel struct {
@@ -46,7 +47,7 @@ func InitLoginScreenModel() LoginScreenModel {
 			t.Prompt = ""
 			t.Validate = func(s string) error {
 				if len(s) < 19 {
-					return errors.New("App Pass Not Long Enough")
+					return errors.New("app pass not long enough")
 				}
 
 				return nil
@@ -81,52 +82,85 @@ var (
 )
 
 const (
-	handle = iota
-	pass
-	rememberMe
-	submit
+	handlePos = iota
+	passPos
+	rememberMePos
+	submitPos
 	filledCheckBox = "☑"
 	emptyCheckbox  = "☐"
 )
 
-func (l LoginScreenModel) saveLogin() {
-	if readErr := viper.ReadInConfig(); readErr != nil {
-		l.error = errors.New("Issue reading config")
-		return
-	}
-	viper.Set("gsky_app_pass", l.LoginComponents[pass].Value())
-	if writeErr := viper.WriteConfig(); writeErr != nil {
-		l.error = errors.New("Issue writing credentials")
-	}
-}
+var (
+	log               = logger.Get()
+	checkedCreds bool = false
+)
 
 func (l LoginScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
+	case AnyUserExistsMsg:
+		cmd = l.updateInputs(msg)
+		if len(msg.results) <= 0 {
+			log.Debug().Msg("no credentials here")
+			return l, cmd
+		}
+		if len(msg.results) == 1 {
+			creds := msg.results[0]
+
+			agent := client.NewAgent(context.Background(), "", creds.handle, creds.appPass)
+			if err := agent.ConnectSave(); err != nil {
+				var credErr *errs.CredentialsError
+				if errors.As(err, &credErr) {
+					l.error = err
+					log.Error().Err(err).Msg("Incorrect Credentials")
+					return l, cmd
+				}
+				l.error = errors.New("unhandled error, check logs file")
+				log.Error().Err(err).Msg("Unknown Error")
+				return l, cmd
+			}
+			return send.Model(agent), cmd
+		}
+		for _, v := range msg.results {
+			log.Debug().Str("creds", v.String()).Msg("should be displaying which account to login to")
+		}
+		return l, cmd
 	case tea.KeyMsg:
 		switch msg.String() {
 		case tea.KeyCtrlC.String(), tea.KeyEsc.String():
+			db.DB.Close()
 			return l, tea.Quit
 		case tea.KeyUp.String(), tea.KeyDown.String(), tea.KeyEnter.String(), tea.KeyCtrlJ.String(), tea.KeyCtrlK.String():
 			s := msg.String()
 			if s == tea.KeyEnter.String() {
-				if l.focusState == submit {
+				handle := l.LoginComponents[handlePos].Value()
+				appPass := l.LoginComponents[passPos].Value()
+				if l.focusState == rememberMePos {
+					l.rememberState = !l.rememberState
+				}
+				if l.focusState == submitPos {
+
+					agent := client.NewAgent(context.Background(), "", handle, appPass)
+					var connErr error
 					if l.rememberState {
-						l.saveLogin()
+						connErr = agent.ConnectSave()
+					} else {
+						connErr = agent.ConnectNoSave()
 					}
-					agent := client.NewAgent(context.Background(), "", l.LoginComponents[handle].Value(), l.LoginComponents[pass].Value())
-					if err := agent.Connect(); err != nil {
-						if errors.Is(err, errs.IncorrectCredentials{}) {
-							l.error = errs.NewIncorrectCredentialsError()
+					if connErr != nil {
+
+						var credErr *errs.CredentialsError
+						if errors.As(connErr, &credErr) {
+							l.error = connErr
+							log.Error().Err(connErr).Msg("Incorrect Credentials")
 							return l, cmd
 						}
-						l.error = err
+						l.error = errors.New("unhandled error, check logs file")
+						log.Error().Err(connErr).Msg("Unknown Error")
+						return l, cmd
 					}
 					return send.Model(agent), cmd
 
-				}
-				if l.focusState == rememberMe {
-					l.rememberState = !l.rememberState
 				}
 			}
 
@@ -137,11 +171,11 @@ func (l LoginScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if l.focusState > len(l.LoginComponents)+1 {
-				l.focusState = handle
-			} else if l.focusState == submit || l.focusState < handle {
-				l.focusState = submit
-			} else if l.focusState == rememberMe {
-				l.focusState = rememberMe
+				l.focusState = handlePos
+			} else if l.focusState == submitPos || l.focusState < handlePos {
+				l.focusState = submitPos
+			} else if l.focusState == rememberMePos {
+				l.focusState = rememberMePos
 			}
 			cmds := make([]tea.Cmd, len(l.LoginComponents))
 			for i := 0; i <= len(l.LoginComponents)-1; i++ {
@@ -161,6 +195,16 @@ func (l LoginScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return l, tea.Batch(cmds...)
 		}
 	}
+	// TODO: figure out whether:
+	// prompt user to see which account they want to log in to from the saved logins or add a new account
+	// or
+	// if only 1 saved login, automagically log them in using that account and make adding another accoutn easily accessible
+
+	if !checkedCreds {
+		cmd = tea.Batch(l.updateInputs(msg), AnyCredentialsExist)
+		checkedCreds = !checkedCreds
+		return l, cmd
+	}
 	cmd = l.updateInputs(msg)
 	return l, cmd
 }
@@ -174,12 +218,12 @@ func fmtNilErrAsEmpty(err error) string {
 
 func (l LoginScreenModel) View() string {
 	button := &blurredButton
-	if l.focusState == submit {
+	if l.focusState == submitPos {
 		button = &focusedButton
 	}
 	btn := fmt.Sprintf("%v", *button)
 	rememberMeStr := blurredRememberMe
-	if l.focusState == rememberMe {
+	if l.focusState == rememberMePos {
 		switch l.rememberState {
 		case true:
 			rememberMeStr = focusedStyle.Render(fmt.Sprintf("%s Remember Me", filledCheckBox))
@@ -196,16 +240,16 @@ func (l LoginScreenModel) View() string {
 	}
 	rememberMeBox := fmt.Sprintf("\n%v\n", rememberMeStr)
 	view := noStyle.PaddingLeft(50).Render(
-		noStyle.Width(50).Border(lipgloss.RoundedBorder(), true, true, true, true).Align(lipgloss.Center).Render(
+		noStyle.Width(55).Border(lipgloss.RoundedBorder(), true, true, true, true).Align(lipgloss.Center).Render(
 			"  [ GoSky Scheduler ]",
 			fmt.Sprintf("\n%s\n", fmtNilErrAsEmpty(l.error)),
 
 			noStyle.Margin(1, 0).Width(35).Align(lipgloss.Center).Border(lipgloss.RoundedBorder(), true, true, true, true).Align(lipgloss.Center).Render(
 
-				l.LoginComponents[handle].View(),
+				l.LoginComponents[handlePos].View(),
 			),
 			noStyle.Margin(1, 0).Width(35).Align(lipgloss.Center).Border(lipgloss.RoundedBorder(), true, true, true, true).Align(lipgloss.Center).Render(
-				l.LoginComponents[pass].View(),
+				l.LoginComponents[passPos].View(),
 			),
 			rememberMeBox,
 

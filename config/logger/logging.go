@@ -32,7 +32,7 @@ func Get() zerolog.Logger {
 			TimeFormat: time.RFC1123,
 		}
 		output.FormatLevel = func(i interface{}) string {
-			return strings.ToUpper(fmt.Sprintf("|%-6s|", i))
+			return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
 		}
 		output.FormatMessage = func(i interface{}) string {
 			return fmt.Sprintf("Msg: %s", i)

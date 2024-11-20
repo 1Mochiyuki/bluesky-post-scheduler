@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/1Mochiyuki/gosky/config/logger"
+	"github.com/1Mochiyuki/gosky/db"
 	"github.com/1Mochiyuki/gosky/errs"
 	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/api/bsky"
@@ -39,13 +41,21 @@ func NewAgent(ctx context.Context, server, handle, apiPass string) BskyAgent {
 	}
 }
 
-var ErrConnection = errors.New("unable to connect")
+var (
+	ErrConnection = errors.New("unable to connect")
+	l             = logger.Get()
+)
 
-func (c *BskyAgent) Connect() error {
+func (c *BskyAgent) ConnectNoSave() error {
 	input := &atproto.ServerCreateSession_Input{Identifier: c.handle, Password: c.apiPass}
 	session, err := atproto.ServerCreateSession(c.ctx, c.client, input)
 	if err != nil {
-		return errs.NewIncorrectCredentialsError()
+
+		if strings.Contains(strings.ToLower(err.Error()), "invalid identifier or password") {
+			return errs.NewCredentialsErr(c.handle)
+		}
+
+		return err
 	}
 
 	c.client.Auth = &xrpc.AuthInfo{
@@ -58,6 +68,34 @@ func (c *BskyAgent) Connect() error {
 	return nil
 }
 
+func (c *BskyAgent) ConnectSave() error {
+	input := &atproto.ServerCreateSession_Input{Identifier: c.handle, Password: c.apiPass}
+	session, err := atproto.ServerCreateSession(c.ctx, c.client, input)
+	if err != nil {
+
+		if strings.Contains(strings.ToLower(err.Error()), "invalid identifier or password") {
+			return errs.NewCredentialsErr(c.handle)
+		}
+
+		return err
+	}
+
+	c.client.Auth = &xrpc.AuthInfo{
+		AccessJwt:  session.AccessJwt,
+		RefreshJwt: session.RefreshJwt,
+		Handle:     session.Handle,
+		Did:        session.Did,
+	}
+	saveErr := db.CreateSavedLogin(db.DB, c.handle, c.apiPass)
+	if saveErr != nil {
+		l.Error().Err(saveErr).Msg("error saving credentials")
+		return saveErr
+	}
+	l.Debug().Msg("saved login")
+
+	return nil
+}
+
 func (c *BskyAgent) CreatePost(post bsky.FeedPost) (string, string, error) {
 	input := atproto.RepoCreateRecord_Input{
 		Collection: "app.bsky.feed.post",
@@ -66,7 +104,9 @@ func (c *BskyAgent) CreatePost(post bsky.FeedPost) (string, string, error) {
 	}
 
 	response, err := atproto.RepoCreateRecord(c.ctx, c.client, &input)
+	l := logger.Get()
 	if err != nil {
+		l.Error().Err(err)
 		return "", "", fmt.Errorf("unable to post: %v", err)
 	}
 	return response.Cid, response.Uri, nil

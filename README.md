@@ -30,10 +30,10 @@ This project is also just a subset for a larger project that will be recreating 
 ## :question: What does it do?
 
 - Post Immediately to BlueSky via a logged in account
-- Option to save the credentials you log in with
 
 ## :star: Planned features
 
+- Option to save the credentials you log in with
 - Send images
 - Alt text for images
 - Multiple account support

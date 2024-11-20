@@ -67,7 +67,7 @@ func (m ImagePickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.SelectedFiles = append(m.SelectedFiles, path)
 		} else {
 			l.Debug().Msg("max files chosen")
-			m.err = errors.New("Maximum files chosen")
+			m.err = errors.New("maximum files chosen")
 			return m, tea.Batch(cmd, clearErrorAfter(2*time.Second))
 		}
 

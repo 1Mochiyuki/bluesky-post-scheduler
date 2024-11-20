@@ -5,6 +5,7 @@ import (
 
 	"github.com/1Mochiyuki/gosky/api/posts"
 	"github.com/1Mochiyuki/gosky/client"
+	"github.com/1Mochiyuki/gosky/ui/picker"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -71,6 +72,9 @@ func (m PostModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.ResultMsg = "Success :D"
 			m.PostArea.SetValue("")
+		case tea.KeyCtrlI.String():
+			model := picker.NewPickerModel()
+			return model, model.Init()
 		}
 	case errMsg:
 		m.err = msg
@@ -82,7 +86,7 @@ func (m PostModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m PostModel) View() string {
 	return fmt.Sprintf(
-		"What would you like to post to BlueSky?\n\n%s\n%s\n\n%s\n\n%s",
+		"What would you like to post to BlueSky?\n\n%s\n%s\n\n\n%s\n\n%s",
 		m.PostArea.View(),
 		m.charCount(),
 		"(esc to quit)",

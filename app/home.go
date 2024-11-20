@@ -1,8 +1,8 @@
 package app
 
 import (
-	"fmt"
 	"os"
+	"path/filepath"
 )
 
 func AppHome() (string, error) {
@@ -10,7 +10,9 @@ func AppHome() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	appHome := fmt.Sprintf("%s/GoSkyScheduler", configDir)
+	// appHome := fmt.Sprintf("%s/GoSkyScheduler.", configDir)
+
+	appHome := filepath.Join(configDir, "GoSkyScheduler")
 
 	_, homeExistsErr := os.Stat(appHome)
 	if homeExistsErr != nil {
