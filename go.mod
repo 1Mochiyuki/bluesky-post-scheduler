@@ -11,6 +11,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/viper v1.19.0
+	golang.org/x/crypto v0.21.0
 )
 
 require (
@@ -69,6 +70,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
+	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
@@ -83,7 +85,6 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
