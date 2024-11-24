@@ -62,8 +62,14 @@ func (m MultiAccountLogin) Init() tea.Cmd {
 
 func NewMultiAccountLogin(logins []Credentials, state *int) MultiAccountLogin {
 	creds := []list.Item{}
-	for handle := range LOGIN_CACHCE {
-		creds = append(creds, Account{handle})
+	if logins != nil {
+		for _, v := range logins {
+			creds = append(creds, Account{v.Handle})
+		}
+	} else {
+		for handle := range LOGIN_CACHCE {
+			creds = append(creds, Account{handle})
+		}
 	}
 	credList := list.New(creds, list.NewDefaultDelegate(), 25, 15)
 	credList.Title = "Stored Accounts"

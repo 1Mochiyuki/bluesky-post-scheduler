@@ -199,16 +199,7 @@ func (l LoginScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return l, tea.Batch(cmds...)
 		}
 	}
-	// TODO: figure out whether:
-	// prompt user to see which account they want to log in to from the saved logins or add a new account
-	// or
-	// if only 1 saved login, automagically log them in using that account and make adding another accoutn easily accessible
 
-	if !checkedCreds {
-		cmd = tea.Batch(l.updateInputs(msg), AnyCredentialsExist)
-		checkedCreds = !checkedCreds
-		return l, cmd
-	}
 	cmd = l.updateInputs(msg)
 	return l, cmd
 }
