@@ -15,21 +15,22 @@
 
 ## Terms
 
+[Bluesky's](https://bsky.social) - A social media platform
 **TUI** - Terminal User Interface, similar to a Graphical User Interface (GUI) but in the terminal<br>
-[Indigo](https://github.com/bluesky-social/indigo) - BlueSky's Go API
+[Indigo](https://github.com/bluesky-social/indigo) - Bluesky's Go API
 
 ## :alien: Who is this made for and why?
 
-This program is made for people who **LOVE** the terminal and want to stay in that environment.<br>
-I created this because I **LOVE** the terminal, it's a lot more efficient for me to navigate around than in a GUI.<br>
+This program is made for people who love the terminal and want to stay in that environment.<br>
+I created this because I love being in the terminal and still want to post things without having to go to Bluesky's website<br>
 
-I also made this to give me experience working with [BlueSky's](https://bsky.social) Go API, [Indigo](#terms).<br>
-This project is also just a subset for a larger project that will be recreating BlueSky as a TUI with full functionality<br>
+I also made this to give me experience working with Bluesky's Go API, [Indigo](#terms).<br>
+This project is also just a subset for a larger project that will be recreating Bluesky as a TUI with full functionality<br>
 (and perhaps some added features as well :wink:)
 
 ## :question: What does it do?
 
-- Post Immediately to BlueSky via a logged in account
+- Post Immediately to Bluesky via a logged in account
 
 ## :star: Planned features
 
