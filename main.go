@@ -4,7 +4,7 @@ import (
 	"github.com/1Mochiyuki/gosky/config"
 	"github.com/1Mochiyuki/gosky/config/logger"
 	"github.com/1Mochiyuki/gosky/db"
-	"github.com/1Mochiyuki/gosky/ui/login"
+	"github.com/1Mochiyuki/gosky/ui"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
 	_ "github.com/mattn/go-sqlite3"
@@ -25,7 +25,7 @@ func main() {
 		panic(dbErr)
 	}
 
-	p := tea.NewProgram(login.InitLoginScreenModel())
+	p := tea.NewProgram(ui.NewAppEntry())
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
