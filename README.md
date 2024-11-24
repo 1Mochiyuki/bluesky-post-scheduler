@@ -44,9 +44,7 @@ This project is also just a subset for a larger project that will be recreating 
 :white_check_mark: User authentication<br>
 :construction: Posting images<br>
 :construction: Scheduling Posts<br>
-:construction: Saving credentials<br>
+:construction: Saving session locally and securely<br>
 :construction: Logging out<br>
-:x: Alt text<br>
-:x: Multi account support<br>
-
-## Getting started
+:x: Alt text on images<br>
+:construction: Multi account support<br>
