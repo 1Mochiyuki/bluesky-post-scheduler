@@ -10,6 +10,7 @@ import (
 	"github.com/1Mochiyuki/gosky/db"
 	"github.com/1Mochiyuki/gosky/errs"
 	"github.com/1Mochiyuki/gosky/ui/send"
+	"github.com/1Mochiyuki/gosky/ui/state"
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,14 +19,15 @@ import (
 
 type LoginScreenModel struct {
 	error           error
+	state           *int
 	LoginComponents []textinput.Model
 	focusState      int
 	rememberState   bool
 }
 
-func InitLoginScreenModel() LoginScreenModel {
+func InitLoginScreenModel(handle string, state *int) LoginScreenModel {
 	m := LoginScreenModel{
-		LoginComponents: make([]textinput.Model, 2), focusState: 0,
+		LoginComponents: make([]textinput.Model, 2), focusState: 0, state: state,
 	}
 	var t textinput.Model
 	for i := range m.LoginComponents {
@@ -36,6 +38,7 @@ func InitLoginScreenModel() LoginScreenModel {
 		switch i {
 		case 0:
 			t.Placeholder = "BlueSky Handle"
+			t.SetValue(handle)
 			t.Focus()
 			t.PlaceholderStyle = focusedStyle
 			t.TextStyle = focusedStyle
@@ -100,14 +103,14 @@ func (l LoginScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case AnyUserExistsMsg:
 		cmd = l.updateInputs(msg)
-		if len(msg.results) <= 0 {
+		if len(msg.Results) <= 0 {
 			log.Debug().Msg("no credentials here")
 			return l, cmd
 		}
-		if len(msg.results) == 1 {
-			creds := msg.results[0]
+		if len(msg.Results) == 1 {
+			creds := msg.Results[0]
 
-			agent := client.NewAgent(context.Background(), "", creds.handle, creds.appPass)
+			agent := client.NewAgent(context.Background(), "", creds.Handle, creds.AppPass)
 			if err := agent.ConnectSave(); err != nil {
 				var credErr *errs.CredentialsError
 				if errors.As(err, &credErr) {
@@ -121,12 +124,13 @@ func (l LoginScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return send.Model(agent), cmd
 		}
-		for _, v := range msg.results {
-			log.Debug().Str("creds", v.String()).Msg("should be displaying which account to login to")
-		}
-		return l, cmd
+		return NewMultiAccountLogin(msg.Results, l.state), cmd
 	case tea.KeyMsg:
 		switch msg.String() {
+		case tea.KeyCtrlLeft.String():
+			*l.state = state.ACCOUNT_PICKER
+			log.Debug().Int("state", *l.state).Msg("should go to account picker")
+			return NewMultiAccountLogin(nil, l.state), AnyCredentialsExist
 		case tea.KeyCtrlC.String(), tea.KeyEsc.String():
 			db.DB.Close()
 			return l, tea.Quit
