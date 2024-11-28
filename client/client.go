@@ -86,13 +86,24 @@ func (c *BskyAgent) ConnectSave() error {
 		Handle:     session.Handle,
 		Did:        session.Did,
 	}
-	saveErr := db.CreateSavedLogin(db.DB, c.handle, c.apiPass)
+
+	savedSession := db.SessionFromAuthInfo(c.client.Auth)
+	user := db.User{
+		Handle:  c.handle,
+		Session: savedSession,
+	}
+
+	id, saveErr := db.InsertNewUser(db.DB, user)
 	if saveErr != nil {
-		l.Error().Err(saveErr).Msg("error saving credentials")
 		return saveErr
 	}
-	l.Debug().Msg("saved login")
+	l.Debug().Msg("saved user")
 
+	saveErr = db.InsertNewSession(db.DB, savedSession, id)
+	if saveErr != nil {
+		return saveErr
+	}
+	l.Debug().Msg("saved session")
 	return nil
 }
 
