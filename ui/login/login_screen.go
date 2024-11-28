@@ -108,21 +108,24 @@ func (l LoginScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return l, cmd
 		}
 		if len(msg.Results) == 1 {
-			creds := msg.Results[0]
+			// TODO:
+			// rewrite logic for logging in using sessions instead of using app pass lol
 
-			agent := client.NewAgent(context.Background(), "", creds.Handle, creds.AppPass)
-			if err := agent.ConnectSave(); err != nil {
-				var credErr *errs.CredentialsError
-				if errors.As(err, &credErr) {
-					l.error = err
-					log.Error().Err(err).Msg("Incorrect Credentials")
-					return l, cmd
-				}
-				l.error = errors.New("unhandled error, check logs file")
-				log.Error().Err(err).Msg("Unknown Error")
-				return l, cmd
-			}
-			return send.Model(agent), cmd
+			// creds := msg.Results[0]
+			//
+			// agent := client.NewAgent(context.Background(), "", creds.Handle, creds.AppPass)
+			// if err := agent.ConnectSave(); err != nil {
+			// 	var credErr *errs.CredentialsError
+			// 	if errors.As(err, &credErr) {
+			// 		l.error = err
+			// 		log.Error().Err(err).Msg("Incorrect Credentials")
+			// 		return l, cmd
+			// 	}
+			// 	l.error = errors.New("unhandled error, check logs file")
+			// 	log.Error().Err(err).Msg("Unknown Error")
+			// 	return l, cmd
+			// }
+			// return send.Model(agent), cmd
 		}
 		return NewMultiAccountLogin(msg.Results, l.state), cmd
 	case tea.KeyMsg:
