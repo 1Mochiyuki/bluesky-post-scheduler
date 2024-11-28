@@ -1,8 +1,6 @@
 package login
 
 import (
-	"fmt"
-
 	"github.com/1Mochiyuki/gosky/config/logger"
 	"github.com/1Mochiyuki/gosky/db"
 	tea "github.com/charmbracelet/bubbletea"
@@ -23,21 +21,10 @@ type SaveCredentialsCmd struct {
 	appPass string
 }
 
-type Credentials struct {
-	Handle  string
-	AppPass string
-}
-
-func (c Credentials) String() string {
-	return fmt.Sprintf("Handle: %s Pass: %s", c.Handle, c.AppPass)
-}
-
 type AnyUserExistsMsg struct {
 	Err     error
-	Results []Credentials
+	Results []db.User
 }
-
-var LOGIN_CACHCE = map[string]string{}
 
 func AnyCredentialsExist() tea.Msg {
 	var rowCount int
@@ -49,8 +36,9 @@ func AnyCredentialsExist() tea.Msg {
 		}
 	}
 
-	var results []Credentials
-	var handle, pass string
+	var results []db.User
+	var handle string
+	var userId uint8
 
 	if rowCount == 0 {
 		l.Warn().Msg("db is empty")
@@ -58,10 +46,10 @@ func AnyCredentialsExist() tea.Msg {
 			Err: err,
 		}
 	}
-	if rowCount == len(LOGIN_CACHCE) {
+	if rowCount == len(db.USER_CACHE) {
 		l.Debug().Msg("pulling from cache")
-		for handle, pass := range LOGIN_CACHCE {
-			results = append(results, Credentials{Handle: handle, AppPass: pass})
+		for userId, handle := range db.USER_CACHE {
+			results = append(results, db.User{Id: userId, Handle: handle})
 		}
 		return AnyUserExistsMsg{
 			Results: results,
@@ -77,15 +65,15 @@ func AnyCredentialsExist() tea.Msg {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		err = rows.Scan(&handle, &pass)
+		err = rows.Scan(&userId, &handle)
 		if err != nil {
 			l.Fatal().Err(err).Msg("error retrieving details from db")
 			return AnyUserExistsMsg{
 				Err: err,
 			}
 		}
-		LOGIN_CACHCE[handle] = pass
-		results = append(results, Credentials{Handle: handle, AppPass: pass})
+		db.USER_CACHE[userId] = handle
+		results = append(results, db.User{Id: userId, Handle: handle})
 	}
 	if err = rows.Err(); err != nil {
 		l.Fatal().Err(err).Msg("an error occurred getting next row")
