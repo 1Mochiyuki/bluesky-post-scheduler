@@ -60,14 +60,14 @@ func (m MultiAccountLogin) Init() tea.Cmd {
 	return AnyCredentialsExist
 }
 
-func NewMultiAccountLogin(logins []Credentials, state *int) MultiAccountLogin {
+func NewMultiAccountLogin(logins []db.User, state *int) MultiAccountLogin {
 	creds := []list.Item{}
 	if logins != nil {
 		for _, v := range logins {
 			creds = append(creds, Account{v.Handle})
 		}
 	} else {
-		for handle := range LOGIN_CACHCE {
+		for _, handle := range db.USER_CACHE {
 			creds = append(creds, Account{handle})
 		}
 	}
